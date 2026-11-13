@@ -23,6 +23,7 @@ export async function connectToMongoDB() {
 const connectedClient = await connectToMongoDB()
 const db = connectedClient.db('hireloop_user')
 const users = db.collection("user")
+const jobs = db.collection("jobs")
 
 app.get('/', (req, res)=>{
     res.send("server is running")
@@ -32,6 +33,18 @@ app.get('/users', async (req, res)=>{
     const cursor = users.find({})
     const result = await cursor.toArray()
     res.send(result)
+})
+
+app.post('/jobs', async(req, res)=>{
+  const job = req.body;
+  const result = await jobs.insertOne(job)
+  res.send(result)
+})
+
+app.get('/jobs', async(req, res)=>{
+  const cursor = jobs.find()
+  const result = await cursor.toArray();
+  res.send(result)
 })
 
 app.listen(port, ()=>{
