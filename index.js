@@ -24,6 +24,7 @@ const connectedClient = await connectToMongoDB()
 const db = connectedClient.db('hireloop_user')
 const users = db.collection("user")
 const jobs = db.collection("jobs")
+const applications = db.collection("applications")
 
 app.get('/', (req, res)=>{
     res.send("server is running")
@@ -42,8 +43,36 @@ app.post('/jobs', async(req, res)=>{
 })
 
 app.get('/jobs', async(req, res)=>{
-  const cursor = jobs.find()
+  const { category, jobType } = req.query;
+  const query= {};
+  
+  if(req.query){
+    if(req.query.category){
+      query.category=req.query.category
+    }
+    if(req.query.jobType){
+      query.jobType=req.query.jobType
+    }
+     if (req.query.search) {
+    query.$or = [
+      { jobTitle: { $regex: req.query.search, $options: "i" } },
+      { companyName: { $regex: req.query.search, $options: "i" } },
+      { qualifications: { $regex: req.query.search, $options: "i" } },
+      { jobTitle: { $regex: req.query.search, $options: "i" } }
+    ];
+  }
+    
+  }console.log(query)
+  const cursor = jobs.find(query)
   const result = await cursor.toArray();
+  res.send(result)
+})
+
+
+app.get('/jobs/:id', async(req, res)=>{
+  const id = req.params.id;
+  const query = {_id: new ObjectId(id)}
+  const result = await jobs.findOne(query)
   res.send(result)
 })
 
@@ -51,6 +80,22 @@ app.delete('/jobs/:id', async(req, res)=>{
   const id = req.params.id;
   const query = {_id: new ObjectId(id)};
   const result = await jobs.deleteOne(query)
+  res.send(result)
+})
+
+app.post('/application', async(req, res)=>{
+  const application = req.body;
+  const result = await applications.insertOne(application)
+  res.send(result)
+})
+
+app.get('/application', async(req, res)=>{
+  const query = {};
+  if(req.query.applicantId){
+    query.userId = req.query.applicantId
+  }
+  const cursor = applications.find(query)
+  const result = await cursor.toArray()
   res.send(result)
 })
 
