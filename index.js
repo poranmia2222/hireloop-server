@@ -40,6 +40,18 @@ app.get('/users', async (req, res) => {
   res.send(result)
 })
 
+app.patch('/users/:id/role', async (req, res)=>{
+  const id = req.params.id;
+  const query = {_id: new ObjectId(id)}
+  const updatedDoc = {
+    $set:{
+      role: req.body.role
+    }
+  }
+  const result = await users.updateOne(query, updatedDoc)
+  res.send(result)
+})
+
 app.get('/user/:id/premium', async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
@@ -100,10 +112,14 @@ app.post('/application', async (req, res) => {
   res.send(result)
 })
 
+
 app.get('/application', async (req, res) => {
   const query = {};
   if (req.query.applicantId) {
     query.userId = req.query.applicantId
+  }
+  if(req.query.jobId){
+    query.jobId = req.query.jobId
   }
   const cursor = applications.find(query)
   const result = await cursor.toArray()
@@ -116,6 +132,35 @@ app.get('/application/count', async (req, res) => {
   }
   const result = await applications.countDocuments(query)
   res.send({ count: result })
+})
+
+// Recruiter: update the status of a candidate's application
+app.patch('/application/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { status } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid application id" });
+    }
+    if (!status) {
+      return res.status(400).json({ success: false, message: "Status is required" });
+    }
+
+    const result = await applications.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status, updatedAt: new Date().toISOString() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
+
+    res.send(result);
+  } catch (error) {
+    console.error("Application status update error:", error);
+    res.status(500).json({ success: false, message: "Failed to update application status" });
+  }
 })
 
 app.post('/payment/checkout/verify', async (req, res) => {
